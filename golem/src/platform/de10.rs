@@ -8,6 +8,7 @@ use embedded_graphics::draw_target::DrawTarget;
 use embedded_graphics::geometry::{OriginDimensions, Size};
 use embedded_graphics::pixelcolor::BinaryColor;
 use embedded_graphics::Drawable;
+use image::{EncodableLayout, RgbaImage};
 use mister_fpga::fpga;
 use mister_fpga::osd::OsdDisplay;
 use sdl3::event::Event;
@@ -27,6 +28,7 @@ pub struct De10Platform {
     toolbar_buffer: DrawBuffer<BinaryColor>,
 
     core_manager: core_manager::CoreManager,
+    current_core: Option<core_manager::core::MisterFpgaCore>,
 }
 
 impl Default for De10Platform {
@@ -62,6 +64,7 @@ impl Default for De10Platform {
             _window: window,
             toolbar_buffer,
             core_manager,
+            current_core: None,
         }
     }
 }
@@ -71,7 +74,7 @@ impl GoLEmPlatform for De10Platform {
     type CoreManager = core_manager::CoreManager;
 
     fn init(&mut self, _flags: &Flags) {
-        self.core_manager.load_menu().unwrap();
+        self.current_core = Some(self.core_manager.load_menu().unwrap());
     }
 
     fn update_toolbar(&mut self, buffer: &DrawBuffer<Self::Color>) {
@@ -90,6 +93,12 @@ impl GoLEmPlatform for De10Platform {
     }
     fn main_dimensions(&self) -> Size {
         sizes::MAIN
+    }
+
+    fn update_framebuffer(&mut self, image: &RgbaImage) {
+        if let Some(core) = &mut self.current_core {
+            core.send_to_framebuffer(image.as_bytes()).unwrap();
+        }
     }
 
     fn events(&mut self) -> Vec<Event> {

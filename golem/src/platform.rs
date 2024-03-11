@@ -13,7 +13,7 @@ use crate::Flags;
 use cfg_if::cfg_if;
 use embedded_graphics::geometry::Size;
 use embedded_graphics::pixelcolor::{BinaryColor, PixelColor};
-use image::DynamicImage;
+use image::{DynamicImage, RgbaImage};
 use mister_fpga::config_string::{ConfigMenu, LoadFileInfo};
 use mister_fpga::types::StatusBitMap;
 use sdl3::event::Event;
@@ -161,6 +161,8 @@ pub trait GoLEmPlatform {
     fn toolbar_dimensions(&self) -> Size;
     fn main_dimensions(&self) -> Size;
 
+    fn update_framebuffer(&mut self, image: &image::RgbaImage);
+
     fn events(&mut self) -> Vec<Event>;
 
     fn sdl(&mut self) -> &mut SdlPlatform<Self::Color>;
@@ -208,6 +210,10 @@ impl GoLEmPlatform for WindowManager {
     }
     fn main_dimensions(&self) -> Size {
         self.inner.main_dimensions()
+    }
+
+    fn update_framebuffer(&mut self, image: &RgbaImage) {
+        self.inner.update_framebuffer(image);
     }
 
     fn events(&mut self) -> Vec<Event> {

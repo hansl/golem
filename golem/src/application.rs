@@ -6,10 +6,13 @@ use crate::macguiver::application::EventLoopState;
 use crate::macguiver::buffer::DrawBuffer;
 use crate::platform::{GoLEmPlatform, WindowManager};
 use crate::Flags;
+use cyclone_v::memory::{DevMemMemoryMapper, MemoryMapper};
 use embedded_graphics::draw_target::DrawTarget;
+use embedded_graphics::geometry::Point;
 use embedded_graphics::pixelcolor::BinaryColor;
-use embedded_graphics::Drawable;
+use embedded_graphics::{Drawable, Pixel};
 use golem_db::Connection;
+use image::{EncodableLayout, RgbaImage};
 use sdl3::event::Event;
 use sdl3::gamepad::Gamepad;
 use sdl3::joystick::Joystick;
@@ -120,6 +123,12 @@ impl GoLEmApp {
         &mut self,
         mut loop_fn: impl FnMut(&mut Self, &mut EventLoopState) -> Option<R>,
     ) -> R {
+        let mut fb = image::RgbaImage::new(1280, 720);
+        const FB_BASE: usize = 0x20000000 + (32 * 1024 * 1024);
+
+        let fb_addr = FB_BASE + (1280 * 720) * 4;
+        let mut mapper = DevMemMemoryMapper::create(fb_addr, 1280 * 720 * 4).unwrap();
+
         loop {
             self.platform.start_loop();
 
@@ -193,6 +202,23 @@ impl GoLEmApp {
 
                 self.platform.update_toolbar(&self.toolbar_buffer);
             }
+
+            for x in 0..self.main_buffer.size().width {
+                for y in 0..self.main_buffer.size().height {
+                    let c = self.main_buffer.get_pixel(Point::new(x as i32, y as i32));
+                    fb.put_pixel(
+                        x,
+                        y,
+                        if c.is_on() {
+                            image::Rgba([0, 0, 0, 255])
+                        } else {
+                            image::Rgba([255, 255, 255, 255])
+                        },
+                    );
+                }
+            }
+            let bytes = &fb.as_bytes()[0..(1280 * 720)];
+            mapper.as_mut_range(..bytes.len()).copy_from_slice(&bytes);
 
             self.platform.end_loop();
         }
