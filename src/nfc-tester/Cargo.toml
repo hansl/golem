@@ -1,0 +1,8 @@
+[package]
+name = "nfc-tester"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nfc1 = { version = "0.5.2", features = ["driver_acr122_usb", "driver_pn53x_usb", "driver_pn532_uart", "usb_logging", "logging"] }
+nfc1-sys = "0.3.7"
